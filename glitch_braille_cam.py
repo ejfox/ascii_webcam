@@ -1,57 +1,50 @@
-import cv2, numpy as np
+import cv2
+import numpy as np
 from time import time
-from scipy.ndimage import gaussian_filter
 
-B = "⠀⠄⠆⠖⠶⠿"  # Reduced set for higher contrast
-
-def perlin(shape, scale=100, octaves=6, persistence=0.5, lacunarity=2.0, seed=None):
-    if seed is not None:
-        np.random.seed(seed)
-    
-    shape = np.array(shape)
-    scales = shape / scale
-    
-    noise = np.zeros(shape)
-    for octave in range(octaves):
-        freq = lacunarity**octave
-        amp = persistence**octave
-        noise += amp * gaussian_filter(np.random.rand(*shape), sigma=1/freq) * scales
-
-    return (noise - noise.min()) / (noise.max() - noise.min())
+# B = "⠀⠁⠂⠃⠄⠅⠆⠇⠈⠉⠊⠋⠌⠍⠎⠏⠐⠑⠒⠓⠔⠕⠖⠗⠘⠙⠚⠛⠜⠝⠞⠟⠠⠡⠢⠣⠤⠥⠦⠧⠨⠩⠪⠫⠬⠭⠮⠯⠰⠱⠲⠳⠴⠵⠶⠷⠸⠹⠺⠻⠼⠽⠾⠿"
+B = "⠀⠈⠐⠠⡀⡈⡐⡠⢀⢈⢐⢠⣀⣈⣐⣠⣼⣾⣿"
 
 def g(f, c=80, r=40):
     gray = cv2.resize(cv2.cvtColor(f, cv2.COLOR_BGR2GRAY), (c, r))
     gray = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)  # Increase contrast
     return np.vectorize(lambda x: B[min(int(x/(256/len(B))), len(B)-1)])(gray)
 
+def blend_frames(prev, curr, blend_factor):
+    prev_indices = np.vectorize(B.index)(prev)
+    curr_indices = np.vectorize(B.index)(curr)
+    blended_indices = (blend_factor * prev_indices + (1 - blend_factor) * curr_indices).astype(int)
+    return np.vectorize(lambda x: B[min(x, len(B)-1)])(blended_indices)
+
 def m():
     c = cv2.VideoCapture(0)
-    p = perlin((40, 80), scale=1, seed=42)
     t, fps, frame_time = 0, 0, time()
-    glitch_lines = np.zeros(40, dtype=int)
+    prev_frame = None
+    blend_factor = 0.8  # Adjust this to control the blending intensity
     
     while True:
-        _, f = c.read()
+        ret, f = c.read()
+        if not ret:
+            print("Failed to grab frame")
+            break
+
+        current_frame = g(f)
         
-        # Update Perlin noise
-        if t % 10 == 0:
-            p = np.roll(p, 1, axis=1)  # Slow shift
+        if prev_frame is None:
+            prev_frame = current_frame
         
-        a = g(f)
+        # Datamoshing-like effect: blend current frame with previous frame
+        blended_frame = blend_frames(prev_frame, current_frame, blend_factor)
         
-        # Apply Perlin-based glitch
-        mask = p > np.percentile(p, 90)
-        a[mask] = B[-1]
-        
-        # Datamoshing-like effect
+        # Introduce some random glitches
         if t % 30 == 0:
-            glitch_lines = np.random.randint(0, 40, 5)  # Select 5 random lines
-        for line in glitch_lines:
-            shift = np.random.randint(-10, 11)
-            a[line] = np.roll(a[line], shift)
+            glitch_mask = np.random.random(blended_frame.shape) > 0.95
+            blended_frame[glitch_mask] = np.random.choice(list(B))
         
-        print("\033[H\033[J" + '\n'.join(''.join(row) for row in a))
+        print("\033[H\033[J" + '\n'.join(''.join(row) for row in blended_frame))
         print(f"FPS: {fps:.2f}")
+        
+        prev_frame = blended_frame  # Update previous frame for next iteration
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

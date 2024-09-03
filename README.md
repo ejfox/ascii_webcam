@@ -1,8 +1,10 @@
 # ASCII Webcam Art
 
-This repository contains a collection of Python scripts that transform your webcam feed into various forms of ASCII art. Each script offers a unique take on rendering your camera input as text-based visual art.
+This repository contains a collection of Python scripts that transform your webcam feed into various forms of ASCII art. Each script offers a unique take on rendering your camera input as text-based visual art, with OpenCV used for positioning the "camera" on the face and displaying eyes in with special characters.
 
 ## Scripts Overview
+
+https://github.com/user-attachments/assets/a4847154-f4da-4df3-a484-d491e3d128b3
 
 ### 1. ascii_webcam_eyes.py
 
@@ -15,6 +17,8 @@ Key features:
 - Mirrors the webcam input for a more intuitive experience
 
 ### 2. ascii_yolo_webcam.py
+
+https://github.com/user-attachments/assets/ed7acaf2-a416-428b-a168-d4d5b66b78af
 
 This script provides a more detailed ASCII representation of the entire face, with special emphasis on eyes.
 
